@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>ETH price checker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; display:flex;align-items:center;justify-content:center;
+           height:100vh; margin:0; background:linear-gradient(180deg,#0f172a,#071032); color:#e6f0ff; }
+    .card { padding:24px; border-radius:12px; background:rgba(255,255,255,0.03); box-shadow: 0 6px 18px rgba(2,6,23,0.6); text-align:center; width:320px; }
+    .price { font-size:2.2rem; margin:10px 0; font-weight:700; }
+    .time { font-size:0.9rem; opacity:0.8; }
+    button { margin-top:12px; padding:8px 12px; border-radius:8px; border:0; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size:1rem; opacity:0.9">ETH / USD</div>
+    <div id="price" class="price">—</div>
+    <div id="change" class="time">Последнее обновление: —</div>
+    <button id="refresh">Обновить сейчас</button>
+    <div style="margin-top:8px; font-size:0.8rem; opacity:0.7">Источник: CoinGecko (public API)</div>
+  </div>
+
+  <script>
+    const priceEl = document.getElementById('price');
+    const changeEl = document.getElementById('change');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function fetchEthPrice() {
+      try {
+        // CoinGecko public endpoint — не требует ключа
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true');
+        if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+        const data = await res.json();
+        if (!data.ethereum || typeof data.ethereum.usd === 'undefined') throw new Error('Unexpected response format');
+
+        const usd = data.ethereum.usd;
+        const change24 = data.ethereum.usd_24h_change;
+
+        priceEl.textContent = '$' + usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        changeEl.textContent = 24h: ${change24 >= 0 ? '+' : ''}${change24.toFixed(2)}% · ${new Date().toLocaleString()};
+
+        // цвет в зависимости от изменения
+        changeEl.style.color = change24 >= 0 ? '#7ee787' : '#ff8b8b';
+      } catch (err) {
+        priceEl.textContent = 'Ошибка';
+        changeEl.textContent = err.message || String(err);
+        changeEl.style.color = '#ff8b8b';
+        console.error('fetchEthPrice error', err);
+      }
+    }
+
+    refreshBtn.addEventListener('click', fetchEthPrice);
+
+    // первый вызов и автоматическое обновление каждые 10 секунд
+    fetchEthPrice();
+    setInterval(fetchEthPrice, 10000);
+  </script>
+</body>
+</html>
